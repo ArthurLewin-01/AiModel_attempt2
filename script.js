@@ -1,28 +1,52 @@
-// WAIT FOR PAGE LOAD
+// PAGE LOAD
 document.addEventListener("DOMContentLoaded", () => {
 
-    // QUICK CHAT BUTTON
-    document.getElementById("quickChatBtn").addEventListener("click", () => {
-        document.getElementById("normalChat").style.display = "none";
-        document.getElementById("videoContainer").classList.remove("hidden");
-    });
+    const home = document.getElementById("homeScreen");
+    const chat = document.getElementById("chatScreen");
+    const modal = document.getElementById("setupModal");
 
-    // AI COMPANION BUTTON (opens modal)
-    document.getElementById("companionBtn").addEventListener("click", () => {
-        document.getElementById("setupModal").classList.remove("hidden");
-    });
+    // QUICK CHAT
+    document.getElementById("quickChatBtn").onclick = () => {
+        home.style.display = "none";
+        chat.classList.remove("hidden");
+    };
+
+    // AI COMPANION
+    document.getElementById("companionBtn").onclick = () => {
+        modal.classList.remove("hidden");
+    };
 
     // CLOSE MODAL
-    document.getElementById("cancelSetup").addEventListener("click", () => {
-        document.getElementById("setupModal").classList.add("hidden");
-    });
+    document.getElementById("closeModal").onclick = () => {
+        modal.classList.add("hidden");
+    };
 
-    // SEND BUTTON
-    document.getElementById("sendBtn").addEventListener("click", sendMessage);
+    // BACK BUTTON
+    document.getElementById("backBtn").onclick = () => {
+        chat.classList.add("hidden");
+        home.style.display = "flex";
+    };
 
-    // ENTER KEY SUPPORT
+    // SEND MESSAGE
+    document.getElementById("sendBtn").onclick = sendMessage;
+
     document.getElementById("messageInput").addEventListener("keypress", (e) => {
         if (e.key === "Enter") sendMessage();
+    });
+
+    // IMAGE PREVIEW
+    document.getElementById("personImage").addEventListener("change", function () {
+        const file = this.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            document.getElementById("imagePreview").innerHTML =
+                `<img src="${e.target.result}" class="w-full h-full object-cover">`;
+        };
+
+        reader.readAsDataURL(file);
     });
 
 });
@@ -44,17 +68,14 @@ function sendMessage() {
 function addMessage(text, sender) {
     const msg = document.createElement("div");
 
-    msg.className = `chat-bubble p-3 rounded-xl max-w-[80%] ${
-        sender === "user"
-            ? "ml-auto bg-blue-500 text-white"
-            : "mr-auto bg-white/20 text-white"
-    }`;
+    msg.className = sender === "user"
+        ? "bg-blue-500 p-2 rounded ml-auto max-w-xs"
+        : "bg-gray-700 p-2 rounded mr-auto max-w-xs";
 
     msg.innerText = text;
 
     const chat = document.getElementById("chatMessages");
     chat.appendChild(msg);
 
-    // AUTO SCROLL
     chat.scrollTop = chat.scrollHeight;
 }
