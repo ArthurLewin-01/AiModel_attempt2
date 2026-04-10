@@ -1,73 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Companion Chat</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Companion Chat</title>
 
-    <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+body { font-family: Arial; }
+.chat-bubble { margin: 5px 0; padding: 10px; border-radius: 10px; max-width: 70%; }
+.user { background: #3b82f6; margin-left: auto; }
+.ai { background: rgba(255,255,255,0.2); margin-right: auto; }
+.hidden { display: none; }
+</style>
 </head>
 
 <body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
 
-<div class="h-screen flex flex-col">
+<!-- HOME -->
+<div id="homeScreen" class="h-screen flex flex-col items-center justify-center">
 
-    <!-- HOME SCREEN -->
-    <div id="normalChat" class="flex-1 flex items-center justify-center flex-col">
-        <h1 class="text-3xl mb-4">AI Companion Chat</h1>
+<h1 class="text-3xl mb-6">AI Companion Chat</h1>
 
-        <button id="quickChatBtn"
-            class="px-6 py-3 bg-blue-500 rounded-xl">
-            Quick Chat
-        </button>
-    </div>
+<div class="flex gap-6">
+<button id="quickChatBtn" class="bg-blue-500 px-6 py-3 rounded-xl">
+Quick Chat
+</button>
 
-    <!-- CHAT SCREEN -->
-    <div id="videoContainer" class="hidden flex-1 flex flex-col">
-
-        <!-- CHAT MESSAGES -->
-        <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
-
-        <!-- INPUT -->
-        <div class="p-4 flex gap-2">
-            <input id="messageInput"
-                class="flex-1 p-2 text-black rounded"
-                placeholder="Type message..." />
-
-            <button id="sendBtn"
-                class="bg-blue-500 px-4 rounded">
-                Send
-            </button>
-        </div>
-
-    </div>
+<button id="companionBtn" class="bg-purple-500 px-6 py-3 rounded-xl">
+AI Companion
+</button>
+</div>
 
 </div>
 
-<!-- ✅ SCRIPT -->
+<!-- CHAT -->
+<div id="chatScreen" class="hidden h-screen flex flex-col">
+
+<div id="chatMessages" class="flex-1 overflow-y-auto p-4"></div>
+
+<div class="p-4 flex gap-2">
+<input id="messageInput" class="flex-1 p-2 text-black rounded" placeholder="Type message...">
+
+<button id="sendBtn" class="bg-blue-500 px-4 rounded">
+Send
+</button>
+</div>
+
+</div>
+
 <script>
-document.getElementById("quickChatBtn").addEventListener("click", () => {
-    document.getElementById("normalChat").style.display = "none";
-    document.getElementById("videoContainer").classList.remove("hidden");
+
+// OPEN CHAT
+document.getElementById("quickChatBtn").onclick = () => {
+    document.getElementById("homeScreen").classList.add("hidden");
+    document.getElementById("chatScreen").classList.remove("hidden");
+};
+
+// SEND MESSAGE
+document.getElementById("sendBtn").onclick = sendMessage;
+
+// ENTER KEY
+document.getElementById("messageInput").addEventListener("keypress", function(e){
+    if(e.key === "Enter") sendMessage();
 });
 
-document.getElementById("sendBtn").addEventListener("click", sendMessage);
-
-function sendMessage() {
+function sendMessage(){
     const input = document.getElementById("messageInput");
     const message = input.value;
 
-    if (!message) return;
+    if(!message) return;
 
-    const chat = document.getElementById("chatMessages");
-
-    const userMsg = document.createElement("div");
-    userMsg.innerText = "You: " + message;
-    chat.appendChild(userMsg);
-
+    addMessage(message, "user");
     input.value = "";
 }
+
+// ADD MESSAGE UI
+function addMessage(text, sender){
+    const div = document.createElement("div");
+    div.className = "chat-bubble " + sender;
+    div.innerText = text;
+
+    document.getElementById("chatMessages").appendChild(div);
+
+    // scroll down
+    document.getElementById("chatMessages").scrollTop =
+    document.getElementById("chatMessages").scrollHeight;
+}
+
 </script>
 
 </body>
 </html>
+
