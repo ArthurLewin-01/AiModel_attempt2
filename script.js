@@ -30,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // SEND MESSAGE
     document.getElementById("sendBtn").onclick = sendMessage;
 
+    // ENTER KEY SUPPORT
     document.getElementById("messageInput").addEventListener("keypress", (e) => {
         if (e.key === "Enter") sendMessage();
     });
@@ -52,15 +53,59 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-// SEND MESSAGE FUNCTION
+// SEND MESSAGE FUNCTION (UPDATED WITH AI REPLY)
 function sendMessage() {
     const input = document.getElementById("messageInput");
-    const message = input.value;
+    const message = input.value.trim();
 
     if (!message) return;
 
     addMessage(message, "user");
     input.value = "";
+
+    // FAKE AI THINKING DELAY
+    setTimeout(() => {
+        const reply = generateReply(message);
+        addMessage(reply, "ai");
+    }, 600);
+}
+
+
+// SIMPLE AI REPLY SYSTEM
+function generateReply(msg) {
+    msg = msg.toLowerCase();
+
+    if (msg.includes("hello") || msg.includes("hi")) {
+        return "Hey! 👋 How can I help you today?";
+    }
+
+    if (msg.includes("how are you")) {
+        return "I'm doing great 😄 What about you?";
+    }
+
+    if (msg.includes("your name")) {
+        return "I'm your AI companion 🤖";
+    }
+
+    if (msg.includes("bye")) {
+        return "Goodbye! 👋 Come back soon.";
+    }
+
+    if (msg.includes("help")) {
+        return "Sure! Ask me anything 😎";
+    }
+
+    // RANDOM REPLIES
+    const randomReplies = [
+        "That's interesting 🤔",
+        "Tell me more about that!",
+        "I see 👀",
+        "Hmm... explain that a bit more?",
+        "Sounds cool 😎",
+        "I'm listening..."
+    ];
+
+    return randomReplies[Math.floor(Math.random() * randomReplies.length)];
 }
 
 
