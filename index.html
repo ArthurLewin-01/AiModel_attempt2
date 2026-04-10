@@ -9,7 +9,26 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
-<body class="bg-gray-900 text-white">
+<body class="bg-gray-900 text-white flex">
+
+<!-- SIDEBAR (CHAT HISTORY) -->
+<div id="sidebar" class="w-72 bg-gray-800 p-4 hidden flex-col">
+
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold">Chats</h2>
+        <button id="newChatBtn" class="bg-blue-500 px-2 py-1 rounded">+</button>
+    </div>
+
+    <!-- SEARCH -->
+    <input id="searchChat" placeholder="Search chat..." class="w-full p-2 mb-4 text-black rounded">
+
+    <!-- CHAT LIST -->
+    <div id="chatHistory" class="flex-1 overflow-y-auto space-y-2"></div>
+
+</div>
+
+<!-- MAIN APP -->
+<div class="flex-1">
 
 <!-- HOME SCREEN -->
 <div id="homeScreen" class="h-screen flex flex-col items-center justify-center text-center">
@@ -44,9 +63,15 @@
 <!-- CHAT SCREEN -->
 <div id="chatScreen" class="hidden h-screen flex flex-col">
 
-    <!-- BACK BUTTON -->
-    <div class="p-4">
+    <!-- TOP BAR -->
+    <div class="p-4 flex justify-between items-center">
+
         <button id="backBtn" class="px-4 py-2 bg-white/20 rounded-lg">← Back</button>
+
+        <button id="toggleSidebar" class="px-4 py-2 bg-white/20 rounded-lg">
+            ☰ Chats
+        </button>
+
     </div>
 
     <!-- CHAT MESSAGES -->
@@ -57,6 +82,8 @@
         <input id="messageInput" class="flex-1 p-2 text-black rounded" placeholder="Type message...">
         <button id="sendBtn" class="px-4 bg-blue-500 rounded">Send</button>
     </div>
+
+</div>
 
 </div>
 
