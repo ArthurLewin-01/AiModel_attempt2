@@ -1,39 +1,30 @@
-// PAGE LOAD
+let chats = JSON.parse(localStorage.getItem("chats")) || [];
+let currentChatId = null;
+
+// INIT
 document.addEventListener("DOMContentLoaded", () => {
+    loadChats();
 
-    const home = document.getElementById("homeScreen");
-    const chat = document.getElementById("chatScreen");
-    const modal = document.getElementById("setupModal");
-
-    // QUICK CHAT
-    document.getElementById("quickChatBtn").onclick = () => {
-        home.style.display = "none";
-        chat.classList.remove("hidden");
-    };
-
-    // AI COMPANION
-    document.getElementById("companionBtn").onclick = () => {
-        modal.classList.remove("hidden");
-    };
-
-    // CLOSE MODAL
-    document.getElementById("closeModal").onclick = () => {
-        modal.classList.add("hidden");
-    };
-
-    // BACK BUTTON
-    document.getElementById("backBtn").onclick = () => {
-        chat.classList.add("hidden");
-        home.style.display = "flex";
-    };
-
-    // SEND MESSAGE
+    document.getElementById("newChatBtn").onclick = createNewChat;
     document.getElementById("sendBtn").onclick = sendMessage;
 
-    // ENTER KEY SUPPORT
     document.getElementById("messageInput").addEventListener("keypress", (e) => {
         if (e.key === "Enter") sendMessage();
     });
+
+    document.getElementById("searchChat").addEventListener("input", searchChats);
+
+    document.getElementById("backBtn").onclick = () => {
+        document.getElementById("chatScreen").classList.add("hidden");
+        document.getElementById("homeScreen").style.display = "flex";
+    };
+
+    document.getElementById("quickChatBtn").onclick = () => {
+        document.getElementById("homeScreen").style.display = "none";
+        document.getElementById("chatScreen").classList.remove("hidden");
+
+        if (!currentChatId) createNewChat();
+    };
 
     // IMAGE PREVIEW
     document.getElementById("personImage").addEventListener("change", function () {
@@ -41,76 +32,125 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!file) return;
 
         const reader = new FileReader();
-
-        reader.onload = function (e) {
+        reader.onload = (e) => {
             document.getElementById("imagePreview").innerHTML =
                 `<img src="${e.target.result}" class="w-full h-full object-cover">`;
         };
-
         reader.readAsDataURL(file);
     });
-
 });
 
 
-// SEND MESSAGE FUNCTION (UPDATED WITH AI REPLY)
+// CREATE NEW CHAT
+function createNewChat() {
+    const newChat = {
+        id: Date.now(),
+        name: "New Chat",
+        messages: []
+    };
+
+    chats.unshift(newChat);
+    currentChatId = newChat.id;
+
+    saveChats();
+    loadChats();
+    renderMessages();
+}
+
+
+// LOAD CHAT LIST
+function loadChats(filtered = chats) {
+    const container = document.getElementById("chatHistory");
+    container.innerHTML = "";
+
+    filtered.forEach(chat => {
+        const div = document.createElement("div");
+        div.className = "p-2 bg-gray-700 rounded flex justify-between items-center cursor-pointer";
+
+        div.innerHTML = `
+            <span onclick="openChat(${chat.id})">${chat.name}</span>
+            <button onclick="showOptions(${chat.id})">⋮</button>
+        `;
+
+        container.appendChild(div);
+    });
+}
+
+
+// OPEN CHAT
+function openChat(id) {
+    currentChatId = id;
+
+    document.getElementById("homeScreen").style.display = "none";
+    document.getElementById("chatScreen").classList.remove("hidden");
+
+    renderMessages();
+}
+
+
+// RENDER MESSAGES
+function renderMessages() {
+    const chat = chats.find(c => c.id === currentChatId);
+    const container = document.getElementById("chatMessages");
+
+    container.innerHTML = "";
+
+    if (!chat) return;
+
+    chat.messages.forEach(m => {
+        addMessage(m.text, m.sender, false);
+    });
+}
+
+
+// SEND MESSAGE
 function sendMessage() {
     const input = document.getElementById("messageInput");
     const message = input.value.trim();
 
-    if (!message) return;
+    if (!message || !currentChatId) return;
+
+    const chat = chats.find(c => c.id === currentChatId);
+
+    chat.messages.push({ text: message, sender: "user" });
 
     addMessage(message, "user");
+
     input.value = "";
 
-    // FAKE AI THINKING DELAY
     setTimeout(() => {
         const reply = generateReply(message);
+        chat.messages.push({ text: reply, sender: "ai" });
+
         addMessage(reply, "ai");
-    }, 600);
+        saveChats();
+    }, 500);
+
+    saveChats();
 }
 
 
-// SIMPLE AI REPLY SYSTEM
+// SIMPLE AI (same as before)
 function generateReply(msg) {
     msg = msg.toLowerCase();
 
-    if (msg.includes("hello") || msg.includes("hi")) {
-        return "Hey! 👋 How can I help you today?";
-    }
+    if (msg.includes("hello")) return "Hey there 👋";
+    if (msg.includes("how are you")) return "I'm good 😄";
+    if (msg.includes("bye")) return "Bye 👋";
 
-    if (msg.includes("how are you")) {
-        return "I'm doing great 😄 What about you?";
-    }
-
-    if (msg.includes("your name")) {
-        return "I'm your AI companion 🤖";
-    }
-
-    if (msg.includes("bye")) {
-        return "Goodbye! 👋 Come back soon.";
-    }
-
-    if (msg.includes("help")) {
-        return "Sure! Ask me anything 😎";
-    }
-
-    // RANDOM REPLIES
-    const randomReplies = [
-        "That's interesting 🤔",
-        "Tell me more about that!",
-        "I see 👀",
-        "Hmm... explain that a bit more?",
-        "Sounds cool 😎",
-        "I'm listening..."
+    const replies = [
+        "Interesting 🤔",
+        "Tell me more!",
+        "Nice!",
+        "Hmm..."
     ];
 
-    return randomReplies[Math.floor(Math.random() * randomReplies.length)];
+    return replies[Math.floor(Math.random() * replies.length)];
 }
 
 
-// ADD MESSAGE UI
-function addMessage(text, sender) {
+// ADD MESSAGE
+function addMessage(text, sender, save = true) {
     const msg = document.createElement("div");
 
     msg.className = sender === "user"
@@ -119,8 +159,45 @@ function addMessage(text, sender) {
 
     msg.innerText = text;
 
-    const chat = document.getElementById("chatMessages");
-    chat.appendChild(msg);
+    document.getElementById("chatMessages").appendChild(msg);
+}
 
-    chat.scrollTop = chat.scrollHeight;
+
+// OPTIONS MENU (rename/delete)
+function showOptions(id) {
+    const choice = prompt("Type: rename / delete");
+
+    if (choice === "rename") {
+        const newName = prompt("Enter new name:");
+        if (!newName) return;
+
+        const chat = chats.find(c => c.id === id);
+        chat.name = newName;
+
+    } else if (choice === "delete") {
+        chats = chats.filter(c => c.id !== id);
+
+        if (currentChatId === id) currentChatId = null;
+    }
+
+    saveChats();
+    loadChats();
+}
+
+
+// SEARCH
+function searchChats(e) {
+    const value = e.target.value.toLowerCase();
+
+    const filtered = chats.filter(c =>
+        c.name.toLowerCase().includes(value)
+    );
+
+    loadChats(filtered);
+}
+
+
+// SAVE
+function saveChats() {
+    localStorage.setItem("chats", JSON.stringify(chats));
 }
