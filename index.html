@@ -1,70 +1,69 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Companion Chat - Talk to Anyone</title>
+    <title>AI Companion Chat</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .chat-bubble { animation: fadeIn 0.3s ease-in; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
-        .sidebar.open { transform: translateX(0); }
-    </style>
 </head>
 
-<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen text-white">
+<body class="bg-black text-white">
 
-<!-- HEADER -->
-<header class="bg-white/10 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between">
-        <h1 class="text-2xl font-bold">AI Companion Chat</h1>
-        <button id="sidebarToggle">☰</button>
-    </div>
-</header>
+<div class="h-screen flex flex-col">
 
-<div class="flex h-screen">
+    <!-- CHAT AREA -->
+    <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
 
-    <!-- SIDEBAR -->
-    <div id="sidebar" class="sidebar w-64 bg-white/5 p-4">
-        <h2>Chat History</h2>
-    </div>
+    <!-- INPUT -->
+    <div class="p-4 flex gap-2">
+        <input id="messageInput"
+            class="flex-1 p-2 text-black rounded"
+            placeholder="Type message..." />
 
-    <!-- MAIN -->
-    <div class="flex-1 flex flex-col">
-
-        <!-- CHAT AREA -->
-        <div id="chatMessages" class="flex-1 overflow-y-auto p-6 space-y-4">
-        </div>
-
-        <!-- INPUT -->
-        <div class="p-4 flex gap-3">
-            <input id="messageInput"
-                class="flex-1 p-3 rounded-xl text-black"
-                placeholder="Type message..." />
-
-            <button id="sendBtn"
-                class="px-4 py-2 bg-blue-500 rounded-xl">
-                Send
-            </button>
-        </div>
-
+        <!-- ✅ FIXED BUTTON -->
+        <button id="sendBtn" onclick="sendMessage()"
+            class="bg-blue-500 px-4 rounded">
+            Send
+        </button>
     </div>
 
 </div>
 
-<!-- ✅ LINKED SCRIPT -->
-<script src="script.js"></script>
+<!-- ✅ SCRIPT INCLUDED -->
+<script>
+async function sendMessage() {
+    const input = document.getElementById("messageInput");
+    const message = input.value;
+
+    if (!message) return;
+
+    addMessage("You: " + message);
+    input.value = "";
+
+    try {
+        const res = await fetch("http://localhost:3000/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ message })
+        });
+
+        const data = await res.json();
+        addMessage("AI: " + data.reply);
+
+    } catch {
+        addMessage("AI: (no backend yet)");
+    }
+}
+
+function addMessage(text) {
+    const div = document.createElement("div");
+    div.innerText = text;
+    document.getElementById("chatMessages").appendChild(div);
+}
+</script>
 
 </body>
 </html>
