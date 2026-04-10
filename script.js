@@ -1,19 +1,35 @@
-// When page loads
+// WAIT FOR PAGE LOAD
 document.addEventListener("DOMContentLoaded", () => {
 
-    // Send button click
+    // QUICK CHAT BUTTON
+    document.getElementById("quickChatBtn").addEventListener("click", () => {
+        document.getElementById("normalChat").style.display = "none";
+        document.getElementById("videoContainer").classList.remove("hidden");
+    });
+
+    // AI COMPANION BUTTON (opens modal)
+    document.getElementById("companionBtn").addEventListener("click", () => {
+        document.getElementById("setupModal").classList.remove("hidden");
+    });
+
+    // CLOSE MODAL
+    document.getElementById("cancelSetup").addEventListener("click", () => {
+        document.getElementById("setupModal").classList.add("hidden");
+    });
+
+    // SEND BUTTON
     document.getElementById("sendBtn").addEventListener("click", sendMessage);
 
-    // Enter key support
-    document.getElementById("messageInput").addEventListener("keypress", function(e) {
-        if (e.key === "Enter") {
-            sendMessage();
-        }
+    // ENTER KEY SUPPORT
+    document.getElementById("messageInput").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
     });
 
 });
 
-async function sendMessage() {
+
+// SEND MESSAGE FUNCTION
+function sendMessage() {
     const input = document.getElementById("messageInput");
     const message = input.value;
 
@@ -21,25 +37,10 @@ async function sendMessage() {
 
     addMessage(message, "user");
     input.value = "";
-
-    try {
-        const res = await fetch("http://localhost:3000/chat", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ message })
-        });
-
-        const data = await res.json();
-
-        addMessage(data.reply, "ai");
-
-    } catch (err) {
-        addMessage("Error connecting to AI", "ai");
-    }
 }
 
+
+// ADD MESSAGE UI
 function addMessage(text, sender) {
     const msg = document.createElement("div");
 
@@ -51,9 +52,9 @@ function addMessage(text, sender) {
 
     msg.innerText = text;
 
-    document.getElementById("chatMessages").appendChild(msg);
+    const chat = document.getElementById("chatMessages");
+    chat.appendChild(msg);
 
-    // auto scroll
-    document.getElementById("chatMessages").scrollTop =
-        document.getElementById("chatMessages").scrollHeight;
+    // AUTO SCROLL
+    chat.scrollTop = chat.scrollHeight;
 }
