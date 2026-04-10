@@ -1,203 +1,151 @@
-let chats = JSON.parse(localStorage.getItem("chats")) || [];
+let chats = [];
 let currentChatId = null;
 
-// INIT
+// LOAD
 document.addEventListener("DOMContentLoaded", () => {
-    loadChats();
 
-    document.getElementById("newChatBtn").onclick = createNewChat;
+    document.getElementById("quickChatBtn").onclick = startNewChat;
+    document.getElementById("backBtn").onclick = goHome;
     document.getElementById("sendBtn").onclick = sendMessage;
+    document.getElementById("toggleSidebar").onclick = toggleSidebar;
+    document.getElementById("newChatBtn").onclick = startNewChat;
 
     document.getElementById("messageInput").addEventListener("keypress", (e) => {
         if (e.key === "Enter") sendMessage();
     });
 
-    document.getElementById("searchChat").addEventListener("input", searchChats);
+    document.getElementById("searchChat").addEventListener("input", renderChats);
 
-    document.getElementById("backBtn").onclick = () => {
-        document.getElementById("chatScreen").classList.add("hidden");
-        document.getElementById("homeScreen").style.display = "flex";
-    };
-
-    document.getElementById("quickChatBtn").onclick = () => {
-        document.getElementById("homeScreen").style.display = "none";
-        document.getElementById("chatScreen").classList.remove("hidden");
-
-        if (!currentChatId) createNewChat();
-    };
-
-    // IMAGE PREVIEW
-    document.getElementById("personImage").addEventListener("change", function () {
-        const file = this.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            document.getElementById("imagePreview").innerHTML =
-                `<img src="${e.target.result}" class="w-full h-full object-cover">`;
-        };
-        reader.readAsDataURL(file);
-    });
 });
 
+// START NEW CHAT
+function startNewChat() {
+    const id = Date.now();
 
-// CREATE NEW CHAT
-function createNewChat() {
-    const newChat = {
-        id: Date.now(),
+    chats.push({
+        id,
         name: "New Chat",
         messages: []
-    };
+    });
 
-    chats.unshift(newChat);
-    currentChatId = newChat.id;
+    currentChatId = id;
 
-    saveChats();
-    loadChats();
-    renderMessages();
+    document.getElementById("homeScreen").classList.add("hidden");
+    document.getElementById("chatScreen").classList.remove("hidden");
+
+    document.getElementById("chatMessages").innerHTML = "";
+
+    renderChats();
 }
 
+// GO BACK HOME
+function goHome() {
+    document.getElementById("chatScreen").classList.add("hidden");
+    document.getElementById("homeScreen").classList.remove("hidden");
 
-// LOAD CHAT LIST
-function loadChats(filtered = chats) {
+    currentChatId = null;
+}
+
+// SEND MESSAGE
+function sendMessage() {
+    const input = document.getElementById("messageInput");
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    addMessage(text, "user");
+
+    const chat = chats.find(c => c.id === currentChatId);
+    chat.messages.push({ text, sender: "user" });
+
+    input.value = "";
+
+    // FAKE AI REPLY
+    setTimeout(() => {
+        const reply = "AI: " + text;
+        addMessage(reply, "ai");
+        chat.messages.push({ text: reply, sender: "ai" });
+    }, 500);
+}
+
+// ADD MESSAGE UI
+function addMessage(text, sender) {
+    const div = document.createElement("div");
+
+    div.className = `p-2 rounded max-w-[70%] ${
+        sender === "user"
+            ? "ml-auto bg-blue-500"
+            : "bg-gray-700"
+    }`;
+
+    div.innerText = text;
+
+    document.getElementById("chatMessages").appendChild(div);
+}
+
+// SIDEBAR TOGGLE
+function toggleSidebar() {
+    const sidebar = document.getElementById("sidebar");
+
+    if (sidebar.classList.contains("hidden")) {
+        sidebar.classList.remove("hidden");
+        sidebar.classList.add("flex");
+    } else {
+        sidebar.classList.add("hidden");
+        sidebar.classList.remove("flex");
+    }
+
+    renderChats();
+}
+
+// RENDER CHAT LIST
+function renderChats() {
     const container = document.getElementById("chatHistory");
+    const search = document.getElementById("searchChat").value.toLowerCase();
+
     container.innerHTML = "";
 
-    filtered.forEach(chat => {
-        const div = document.createElement("div");
-        div.className = "p-2 bg-gray-700 rounded flex justify-between items-center cursor-pointer";
+    chats
+        .filter(c => c.name.toLowerCase().includes(search))
+        .forEach(chat => {
+            const div = document.createElement("div");
 
-        div.innerHTML = `
-            <span onclick="openChat(${chat.id})">${chat.name}</span>
-            <button onclick="showOptions(${chat.id})">⋮</button>
-        `;
+            div.className = "p-2 bg-gray-700 rounded cursor-pointer flex justify-between items-center";
 
-        container.appendChild(div);
-    });
+            div.innerHTML = `
+                <span>${chat.name}</span>
+                <button onclick="deleteChat(${chat.id})">❌</button>
+            `;
+
+            div.onclick = () => openChat(chat.id);
+
+            container.appendChild(div);
+        });
 }
-
 
 // OPEN CHAT
 function openChat(id) {
     currentChatId = id;
 
-    document.getElementById("homeScreen").style.display = "none";
-    document.getElementById("chatScreen").classList.remove("hidden");
+    const chat = chats.find(c => c.id === id);
 
-    renderMessages();
-}
+    document.getElementById("chatMessages").innerHTML = "";
 
-
-// RENDER MESSAGES
-function renderMessages() {
-    const chat = chats.find(c => c.id === currentChatId);
-    const container = document.getElementById("chatMessages");
-
-    container.innerHTML = "";
-
-    if (!chat) return;
-
-    chat.messages.forEach(m => {
-        addMessage(m.text, m.sender, false);
+    chat.messages.forEach(msg => {
+        addMessage(msg.text, msg.sender);
     });
+
+    document.getElementById("homeScreen").classList.add("hidden");
+    document.getElementById("chatScreen").classList.remove("hidden");
 }
 
+// DELETE CHAT
+function deleteChat(id) {
+    chats = chats.filter(c => c.id !== id);
+    renderChats();
 
-// SEND MESSAGE
-function sendMessage() {
-    const input = document.getElementById("messageInput");
-    const message = input.value.trim();
-
-    if (!message || !currentChatId) return;
-
-    const chat = chats.find(c => c.id === currentChatId);
-
-    chat.messages.push({ text: message, sender: "user" });
-
-    addMessage(message, "user");
-
-    input.value = "";
-
-    setTimeout(() => {
-        const reply = generateReply(message);
-        chat.messages.push({ text: reply, sender: "ai" });
-
-        addMessage(reply, "ai");
-        saveChats();
-    }, 500);
-
-    saveChats();
-}
-
-
-// SIMPLE AI (same as before)
-function generateReply(msg) {
-    msg = msg.toLowerCase();
-
-    if (msg.includes("hello")) return "Hey there 👋";
-    if (msg.includes("how are you")) return "I'm good 😄";
-    if (msg.includes("bye")) return "Bye 👋";
-
-    const replies = [
-        "Interesting 🤔",
-        "Tell me more!",
-        "Nice!",
-        "Hmm..."
-    ];
-
-    return replies[Math.floor(Math.random() * replies.length)];
-}
-
-
-// ADD MESSAGE
-function addMessage(text, sender, save = true) {
-    const msg = document.createElement("div");
-
-    msg.className = sender === "user"
-        ? "bg-blue-500 p-2 rounded ml-auto max-w-xs"
-        : "bg-gray-700 p-2 rounded mr-auto max-w-xs";
-
-    msg.innerText = text;
-
-    document.getElementById("chatMessages").appendChild(msg);
-}
-
-
-// OPTIONS MENU (rename/delete)
-function showOptions(id) {
-    const choice = prompt("Type: rename / delete");
-
-    if (choice === "rename") {
-        const newName = prompt("Enter new name:");
-        if (!newName) return;
-
-        const chat = chats.find(c => c.id === id);
-        chat.name = newName;
-
-    } else if (choice === "delete") {
-        chats = chats.filter(c => c.id !== id);
-
-        if (currentChatId === id) currentChatId = null;
+    if (currentChatId === id) {
+        goHome();
     }
-
-    saveChats();
-    loadChats();
 }
 
-
-// SEARCH
-function searchChats(e) {
-    const value = e.target.value.toLowerCase();
-
-    const filtered = chats.filter(c =>
-        c.name.toLowerCase().includes(value)
-    );
-
-    loadChats(filtered);
-}
-
-
-// SAVE
-function saveChats() {
-    localStorage.setItem("chats", JSON.stringify(chats));
-}
