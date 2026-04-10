@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Companion Chat - Talk to Anyone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .chat-bubble { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .typing-indicator { display: none; }
+        .typing-indicator.active { display: inline-block; }
+        .voice-recording { display: none; }
+        .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+        .sidebar.open { transform: translateX(0); }
+        .chat-history-item { cursor: pointer; transition: background 0.2s; }
+        .chat-history-item:hover { background: rgba(59, 130, 246, 0.1); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen text-white">
+    <!-- Header -->
+    <header class="bg-white/10 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-robot text-white text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+                    AI Companion Chat
+                </h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="sidebarToggle" class="p-2 hover:bg-white/10 rounded-lg">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <a href="https://www.linkedin.com/in/abdul-tofik-00848b402/" target="_blank" 
+                   class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-xl transition-all duration-200 flex items-center space-x-2 group">
+                    <i class="fab fa-linkedin"></i>
+                    <span>Thanks to Abdul Tofik</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar w-80 bg-white/5 backdrop-blur-md border-r border-white/10 p-6">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-xl font-bold">Chat History</h2>
+                <button id="newChatBtn" class="p-2 hover:bg-white/10 rounded-lg">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            <div id="chatHistory" class="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto">
+                <!-- Chat history will be populated here -->
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <!-- Setup Modal -->
+            <div id="setupModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6 hidden">
+                <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+                    <h2 class="text-2xl font-bold mb-6 text-center bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+                        Create Your AI Companion
+                    </h2>
+                    
+                    <!-- Image Upload -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-2">Upload Upper Body Image <span class="text-red-400">*</span></label>
+                        <div class="border-2 border-dashed border-white/30 rounded-xl p-6 text-center hover:border-white/50 transition-all duration-200">
+                            <input type="file" id="personImage" accept="image/*" class="hidden">
+                            <div id="imagePreview" class="w-full h-48 bg-black/20 rounded-xl flex items-center justify-center mb-4">
+                                <i class="fas fa-image text-3xl text-gray-400"></i>
+                            </div>
+                            <button onclick="document.getElementById('personImage').click()" 
+                                    class="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200">
+                                Choose Image
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Person Status -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-2">Is this person... <span class="text-red-400">*</span></label>
+                        <select id="personStatus" class="w-full p-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Select...</option>
+                            <option value="alive">Alive</option>
+                            <option value="dead">Deceased</option>
+                            <option value="fictional">Fictional Character</option>
+                        </select>
+                    </div>
+
+                    <!-- Dynamic Fields -->
+                    <div id="dynamicFields"></div>
+
+                    <!-- Voice Selection -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-2">Voice Style</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button class="voice-option p-3 bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 transition-all duration-200 flex items-center space-x-3" data-voice="male-bold">
+                                <i class="fas fa-volume-up text-blue-400"></i>
+                                <span>Male Bold</span>
+                            </button>
+                            <button class="voice-option p-3 bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 transition-all duration-200 flex items-center space-x-3" data-voice="male-soft">
+                                <i class="fas fa-volume-up text-blue-300"></i>
+                                <span>Male Soft</span>
+                            </button>
+                            <button class="voice-option p-3 bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 transition-all duration-200 flex items-center space-x-3" data-voice="female-bold">
+                                <i class="fas fa-volume-up text-pink-400"></i>
+                                <span>Female Bold</span>
+                            </button>
+                            <button class="voice-option p-3 bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 transition-all duration-200 flex items-center space-x-3" data-voice="female-soft">
+                                <i class="fas fa-volume-up text-pink-300"></i>
+                                <span>Female Soft</span>
+                            </button>
+                        </div>
+                        <div class="voice-recording mt-4 p-4 bg-white/5 border border-dashed border-white/20 rounded-xl text-center">
+                            <input type="file" id="customVoice" accept="audio/*" class="hidden">
+                            <button onclick="document.getElementById('customVoice').click()" 
+                                    class="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium rounded-xl transition-all duration-200 mt-2">
+                                <i class="fas fa-upload mr-2"></i>Upload Custom Voice
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex space-x-3 pt-4">
+                        <button id="startChatBtn" disabled class="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl">
+                            <i class="fas fa-play mr-2"></i>Start Conversation
+                        </button>
+                        <button id="cancelSetup" class="px-6 py-3 bg-white/20 hover:bg-white/30 text-white font-medium rounded-xl transition-all duration-200">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Chat Area -->
+            <div class="flex-1 overflow-hidden relative">
+                <!-- Video Call Container -->
+                <div id="videoContainer" class="h-full hidden flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
+                    <div class="w-full max-w-4xl mx-auto p-8">
+                        <!-- AI Video Display -->
+                        <div id="aiVideoDisplay" class="relative w-full aspect-video bg-black rounded-2xl shadow-2xl mx-auto mb-8 max-w-2xl">
+                            <canvas id="aiCanvas" class="w-full h-full rounded-2xl"></canvas>
+                            <div id="videoBackground" class="absolute inset-0 bg-white rounded-2xl opacity-20"></div>
+                            <input type="file" id="backgroundImage" accept="image/*" class="hidden">
+                        </div>
+
+                        <!-- Chat Messages -->
+                        <div id="chatMessages" class="max-h-96 overflow-y-auto mb-6 p-6 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 space-y-4">
+                            <!-- Messages will appear here -->
+                        </div>
+
+                        <!-- Input Area -->
+                        <div class="flex space-x-4">
+                            <input type="file" id="userImageUpload" accept="image/*" class="hidden">
+                            <button onclick="document.getElementById('userImageUpload').click()" 
+                                    class="p-3 bg-white/10 hover:bg-white/20 rounded-xl border border-white/20 transition-all duration-200">
+                                <i class="fas fa-image text-lg"></i>
+                            </button>
+                            <div class="flex-1 relative">
+                                <input type="text" id="messageInput" placeholder="Type your message..." 
+                                       class="w-full p-4 pr-16 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <button id="sendBtn" class="absolute right-4 top-1/2 transform -translate-y-1/2 p-2 hover:bg-white/20 rounded-xl transition-all duration-200">
+                                    <i class="fas fa-paper-plane text-xl"></i>
+                                </button>
+                            </div>
+                            <button id="voiceBtn" class="p-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-xl border border-white/20 transition-all duration-200 shadow-lg hover:shadow-xl">
+                                <i class="fas fa-microphone text-xl"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Normal Chat Mode -->
+                <div id="normalChat" class="h-full flex flex-col">
+                    <div class="p-8 text-center">
+                        <div class="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
+                            <i class="fas fa-robot text-3xl text-white"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold mb-2 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+                            AI Companion Chat
+                        </h2>
+                        <p class="text-gray-300 mb-8 max-w-2xl mx-auto">
+                            Talk to anyone - real, fictional, or create your custom AI companion with video calls!
+                        </p>
+                        <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                            <button id="quickChatBtn" class="group p-8 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl">
+                                <i class="fas fa-comments text-3xl text-blue-400 mb-4 group-hover:text-blue-300"></i>
+                                <h3 class="text-xl font-bold mb-2">Quick Chat</h3>
+                                <p class="text-gray-300">Normal AI conversation</p>
+                            </button>
+                            <button id="companionBtn" class="group p-8 bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-md border border-purple-500/30 rounded-2xl hover:from-purple-500/30 hover:to-pink-500/30 hover:border-purple-500/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl border-opacity-50">
+                                <i class="fas fa-video text-3xl text-purple-300 mb-4 group-hover:text-purple-200"></i>
+                                <h3 class="text-xl font-bold mb-2">AI Companion</h3>
+                                <p class="text-gray-200">Video call with custom AI</p>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script src="script.js"></script>
+</body>
+</html>
